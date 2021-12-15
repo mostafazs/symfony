@@ -187,6 +187,13 @@ class MockHttpClientTest extends HttpClientTestCase
         ];
     }
 
+    public function testZeroStatusCode()
+    {
+        $client = new MockHttpClient(new MockResponse('', ['response_headers' => ['HTTP/1.1 000 ']]));
+        $response = $client->request('GET', 'https://foo.bar');
+        $this->assertSame(0, $response->getStatusCode());
+    }
+
     public function testThrowExceptionInBodyGenerator()
     {
         $mockHttpClient = new MockHttpClient([
@@ -278,6 +285,7 @@ class MockHttpClientTest extends HttpClientTestCase
                 $this->markTestSkipped('Real transport required');
                 break;
 
+            case 'testTimeoutOnInitialize':
             case 'testTimeoutOnDestruct':
                 $this->markTestSkipped('Real transport required');
                 break;
