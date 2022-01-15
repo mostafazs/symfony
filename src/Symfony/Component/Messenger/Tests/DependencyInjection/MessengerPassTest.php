@@ -40,6 +40,7 @@ use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
 use Symfony\Component\Messenger\Middleware\StackInterface;
 use Symfony\Component\Messenger\Tests\Fixtures\DummyCommand;
 use Symfony\Component\Messenger\Tests\Fixtures\DummyCommandHandler;
+use Symfony\Component\Messenger\Tests\Fixtures\DummyHandlerWithCustomMethods;
 use Symfony\Component\Messenger\Tests\Fixtures\DummyMessage;
 use Symfony\Component\Messenger\Tests\Fixtures\DummyQuery;
 use Symfony\Component\Messenger\Tests\Fixtures\DummyQueryHandler;
@@ -103,6 +104,39 @@ class MessengerPassTest extends TestCase
         $this->assertCount(1, $handlerDescriptionMapping);
 
         $this->assertHandlerDescriptor($container, $handlerDescriptionMapping, DummyMessage::class, [DummyHandler::class], [['from_transport' => 'async']]);
+    }
+
+    public function testHandledMessageTypeResolvedWithMethodAndNoHandlesViaTagAttributes()
+    {
+        $container = $this->getContainerBuilder($busId = 'message_bus');
+        $container
+            ->register(DummyHandlerWithCustomMethods::class, DummyHandlerWithCustomMethods::class)
+            ->addTag('messenger.message_handler', [
+                'method' => 'handleDummyMessage',
+            ])
+            ->addTag('messenger.message_handler', [
+                'method' => 'handleSecondMessage',
+            ]);
+
+        (new MessengerPass())->process($container);
+
+        $handlersMapping = $container->getDefinition($busId.'.messenger.handlers_locator')->getArgument(0);
+
+        $this->assertArrayHasKey(DummyMessage::class, $handlersMapping);
+        $this->assertHandlerDescriptor(
+            $container,
+            $handlersMapping,
+            DummyMessage::class,
+            [[DummyHandlerWithCustomMethods::class, 'handleDummyMessage']]
+        );
+
+        $this->assertArrayHasKey(SecondMessage::class, $handlersMapping);
+        $this->assertHandlerDescriptor(
+            $container,
+            $handlersMapping,
+            SecondMessage::class,
+            [[DummyHandlerWithCustomMethods::class, 'handleSecondMessage']]
+        );
     }
 
     public function testTaggedMessageHandler()

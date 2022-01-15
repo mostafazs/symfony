@@ -59,7 +59,7 @@ final class UidNormalizer implements NormalizerInterface, DenormalizerInterface,
     /**
      * {@inheritdoc}
      */
-    public function supportsNormalization(mixed $data, string $format = null): bool
+    public function supportsNormalization(mixed $data, string $format = null, array $context = []): bool
     {
         return $data instanceof AbstractUid;
     }
@@ -71,10 +71,8 @@ final class UidNormalizer implements NormalizerInterface, DenormalizerInterface,
     {
         try {
             return AbstractUid::class !== $type ? $type::fromString($data) : Uuid::fromString($data);
-        } catch (\InvalidArgumentException $exception) {
-            throw NotNormalizableValueException::createForUnexpectedDataType('The data is not a valid UUID string representation.', $data, [Type::BUILTIN_TYPE_STRING], $context['deserialization_path'] ?? null, true);
-        } catch (\TypeError $exception) {
-            throw NotNormalizableValueException::createForUnexpectedDataType('The data is not a valid UUID string representation.', $data, [Type::BUILTIN_TYPE_STRING], $context['deserialization_path'] ?? null, true);
+        } catch (\InvalidArgumentException|\TypeError $exception) {
+            throw NotNormalizableValueException::createForUnexpectedDataType(sprintf('The data is not a valid "%s" string representation.', $type), $data, [Type::BUILTIN_TYPE_STRING], $context['deserialization_path'] ?? null, true);
         } catch (\Error $e) {
             if (str_starts_with($e->getMessage(), 'Cannot instantiate abstract class')) {
                 return $this->denormalize($data, AbstractUid::class, $format, $context);
@@ -87,7 +85,7 @@ final class UidNormalizer implements NormalizerInterface, DenormalizerInterface,
     /**
      * {@inheritdoc}
      */
-    public function supportsDenormalization(mixed $data, string $type, string $format = null): bool
+    public function supportsDenormalization(mixed $data, string $type, string $format = null, array $context = []): bool
     {
         return is_a($type, AbstractUid::class, true);
     }
